@@ -6,13 +6,14 @@ class Game {
 	game: Phaser.Game;
 
 	constructor() {
-		this.game = new Phaser.Game(480, 320, Phaser.CANVAS, 'ld41', { preload: this.preload, create: this.create });
+		this.game = new Phaser.Game(640, 480, Phaser.CANVAS, 'ld41', { preload: this.preload, create: this.create });
 	}
 
 	preload() {
 		this.game.state.add('splash', SplashState);
 		this.game.state.add('load', LoadState);
 		this.game.state.add('menu', MenuState);
+		this.game.state.add('play', PlayState);
 	}
 
 	create() {
