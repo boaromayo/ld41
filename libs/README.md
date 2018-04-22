@@ -1,1 +1,3 @@
-This is where the libraries for [Phaser](https://phaser.io/) are stored.
+# Libraries
+---
+This directory contains phaser, the framework for the game.
