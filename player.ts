@@ -5,16 +5,19 @@ class Player extends Entity {
 	//tool: Tool;
 	cursors: Phaser.CursorKeys;
 
+	hp: number;
+
 	constructor(game,tilemap) {
 		super(game,tilemap,32,32);
 		this.x = 256;
 		this.y = 128;
 		this.cursors = this.game.input.keyboard.createCursorKeys();
+		this.hp = 15;
 	}
 
 	create() {
 		this.sprite = this.game.add.sprite(0, 0, 'player', 1);
-		this.sprite.body.setSize(30,30);
+		this.sprite.body.setSize(32,32);
 		this.sprite.anchor.setTo(0.5,0.5);
 
 		// Add animations

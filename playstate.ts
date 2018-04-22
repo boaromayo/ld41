@@ -44,6 +44,12 @@ class PlayState extends Phaser.State {
 
 		// Focus camera on player
 		this.game.camera.follow(this.player.getSprite());
+
+		// Add in health
+		var health = this.game.add.sprite(8, 8, 'itemset');
+		health.frame = 0;
+
+		
 	}
 
 	update() {

@@ -15,7 +15,7 @@ class MenuState extends Phaser.State {
 		this.sky = this.game.add.tileSprite(0, 0, 640, 960, 'sky');
 		this.sky.tilePosition.y = 0;
 
-		//var grass = this.game.add.sprite(0, 400, 'grass');
+		var grass = this.game.add.sprite(0, 400, 'grass');
 
 		// Add title and make it transparent
 		//var title = this.game.add.sprite(100, 200, 'title');
@@ -32,22 +32,18 @@ class MenuState extends Phaser.State {
 			this, 1, 0, 2);
 
 		// Add prompt
-		//this.game.add.sprite(128, 416, 'prompt');
+		this.game.add.sprite(128, 416, 'prompt');
 
 		this.game.time.events.add(2000, this.update);
 	}
 
 	update() {
-		while (this.sky.tilePosition.y < 400) {
+		while (this.sky.tilePosition.y > 400) {
 			this.sky.tilePosition.y -= 1;
 		}
 	}
 
 	onClick() {
-		this.branch();
-	}
-
-	branch() {
-		
+		this.game.state.start('play');
 	}
 }

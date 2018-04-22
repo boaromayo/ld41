@@ -12,17 +12,17 @@ class LoadState extends Phaser.State {
 		// Load menu assets.
 		this.game.load.image('sky', 'assets/sky-background.png');
 		this.game.load.image('grass', 'assets/grass-foreground.png');
-		this.game.load.image('title', 'assets/title.png');
-		this.game.load.image('entry-box', 'assets/entry-box.png');
+		//this.game.load.image('title', 'assets/title.png');
 		this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
-		this.game.load.image('cursor', 'assets/entry-cursor.png');
+		//this.game.load.image('cursor', 'assets/entry-cursor.png');
 		this.game.load.image('prompt', 'assets/prompt.png');
 
 		// Load game assets.
 		this.game.load.tilemap('map', 'assets/field.csv', 
 			null, Phaser.Tilemap.CSV);
 		this.game.load.image('tileset', 'assets/tileset.png');
-		this.game.load.image('itemset', 'assets/itemset.png');
+		this.game.load.spritesheet('itemset', 
+			'assets/itemset.png', 32, 32);
 		this.game.load.spritesheet('player', 
 			'assets/player.png', 32, 32, 4, 0, 0);
 
