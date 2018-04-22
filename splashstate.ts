@@ -16,8 +16,8 @@ class SplashState extends Phaser.State {
 		logo.alpha = 0; // Set to invisible.
 
 		var fade = this.game.add.tween(logo);
-		fade.to({ alpha: 1 }, 1500, Phaser.Easing.Linear.None, true, 500, 1, true);
+		fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 1000, 0, true);
 
-		this.game.time.events.add(3500, () => this.game.state.start('load'));
+		this.game.time.events.add(6000, () => this.game.state.start('load'));
 	}
 }

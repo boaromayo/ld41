@@ -1,31 +1,41 @@
 /// <reference path='game.ts' />
 /// <reference path='menustate.ts' />
 
+/* LoadState loads the resources for the game. */
 class LoadState extends Phaser.State {
-	
-	keyInput: Phaser.Keyboard;
 
 	constructor() {
 		super();
-		this.keyInput = new Phaser.Keyboard(this.game);
 	}
 
 	preload() {
 		// Load menu assets.
 		this.game.load.image('sky', 'assets/sky-background.png');
 		this.game.load.image('grass', 'assets/grass-foreground.png');
+		this.game.load.image('title', 'assets/title.png');
 		this.game.load.image('entry-box', 'assets/entry-box.png');
-		this.game.load.image('ok-btn', 'assets/ok-button.png');
-		this.game.load.image('prompt', 'assets/start.png');
+		this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
+		this.game.load.image('cursor', 'assets/entry-cursor.png');
+		this.game.load.image('prompt', 'assets/prompt.png');
 
 		// Load game assets.
-		this.game.load.image('player', 'assets/player.png');
+		this.game.load.tilemap('map', 'assets/field.csv', 
+			null, Phaser.Tilemap.CSV);
+		this.game.load.image('tileset', 'assets/tileset.png');
+		this.game.load.image('itemset', 'assets/itemset.png');
+		this.game.load.spritesheet('player', 
+			'assets/player.png', 32, 32, 4, 0, 0);
+
+		// Load keyboard for input.
+		this.game.input.keyboard.enabled = true;
 	}
 
 	create() {
-		this.game.add.text(200, 200, 'Now loading...', { font: 'Courier New', size: 48 });
+		// Add "Now Loading..."
+		this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
 
-		this.game.time.events.add(3000, () => 
-			this.game.state.start('menu'));
+		// Wait two seconds and go to menu
+		this.game.time.events.add(1500, () => 
+			this.game.state.start('play'));
 	}
 }
