@@ -124,9 +124,11 @@ var PlayState = /** @class */ (function (_super) {
 }(Phaser.State));
 var MenuState = /** @class */ (function (_super) {
     __extends(MenuState, _super);
-    function MenuState() {
+    function MenuState(game) {
         var _this = _super.call(this) || this;
+        _this.game = game;
         _this.keyInput = _this.game.input.keyboard;
+        _this.command = ' ';
         return _this;
     }
     MenuState.prototype.create = function () {
@@ -142,15 +144,15 @@ var MenuState = /** @class */ (function (_super) {
         //title.alpha = 0;
         //var titleTween = this.game.add.tween(title);
         // Add text field
-        this.game.add.sprite(256, 368, 'text-field');
+        this.game.add.sprite(128, 176, 'text-field');
         // Add cursor
         this.cursor = this.game.add.bitmapData(24, 32, 'cursor');
         this.cursor.fill(255, 255, 255, 1); // all white
-        this.cursor.addToWorld();
+        this.cursor.addToWorld(128, 336, 0.5, 0.5, 1, 1);
         // Add ok button
-        this.game.add.button(256, 368, 'ok-btn', this.onClick, this, 1, 0, 2);
+        this.game.add.button(256, 304, 'ok-btn', this.onClick, this, 1, 0, 2);
         // Add prompt
-        this.game.add.text(128, 416, 'Click OK to start', { font: '50px Open Sans' });
+        this.game.add.text(128, 396, 'Click OK to start', { font: '50px Open Sans' });
         // Enable key uses
         this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
         this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
@@ -164,6 +166,10 @@ var MenuState = /** @class */ (function (_super) {
                 this.onClick;
             }
             this.command = ''; // Clear command
+        }
+        if (this.keyBackspace.isDown) {
+            this.cursor.cls;
+            this.command = '';
         }
     };
     MenuState.prototype.render = function () { };

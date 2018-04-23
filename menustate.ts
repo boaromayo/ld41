@@ -2,7 +2,8 @@
 /// <reference path='loadstate.ts' />
 /// <reference path='playstate.ts' />
 
-class MenuState extends Phaser.State {	
+class MenuState extends Phaser.State {
+	game: Phaser.Game;
 	sky: Phaser.TileSprite;
 	keyInput: Phaser.Keyboard;
 	keyEnter: Phaser.Key;
@@ -10,9 +11,11 @@ class MenuState extends Phaser.State {
 	cursor: Phaser.BitmapData;
 	command: string;
 
-	constructor() {
+	constructor(game: Phaser.Game) {
 		super();
+		this.game = game;
 		this.keyInput = this.game.input.keyboard;
+		this.command = ' ';
 	}
 
 	create() {
@@ -29,16 +32,16 @@ class MenuState extends Phaser.State {
 		//title.alpha = 0;
 		//var titleTween = this.game.add.tween(title);
 		// Add text field
-		this.game.add.sprite(256, 368, 'text-field');
+		this.game.add.sprite(128, 176, 'text-field');
 		// Add cursor
 		this.cursor = this.game.add.bitmapData(24, 32, 'cursor');
 		this.cursor.fill(255,255,255,1); // all white
-		this.cursor.addToWorld();
+		this.cursor.addToWorld(128, 336, 0.5, 0.5, 1, 1);
 		// Add ok button
-		this.game.add.button(256, 368, 'ok-btn', this.onClick, 
+		this.game.add.button(256, 304, 'ok-btn', this.onClick, 
 			this, 1, 0, 2);
 		// Add prompt
-		this.game.add.text(128, 416, 'Click OK to start', 
+		this.game.add.text(128, 396, 'Click OK to start', 
 			{ font: '50px Open Sans' });
 		// Enable key uses
 		this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
@@ -54,6 +57,10 @@ class MenuState extends Phaser.State {
 				this.onClick;
 			}
 			this.command = ''; // Clear command
+		}
+		if (this.keyBackspace.isDown) {
+			this.cursor.cls;
+			this.command = '';
 		}
 	}
 
