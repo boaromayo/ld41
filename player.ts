@@ -1,13 +1,12 @@
 /// <reference path='entity.ts' />
 
 class Player extends Entity {
-	
 	//tool: Tool;
 	cursors: Phaser.CursorKeys;
-
 	hp: number;
+	gems: number;
 
-	constructor(game,tilemap) {
+	constructor(game: Phaser.Game,tilemap: Phaser.Tilemap) {
 		super(game,tilemap,32,32);
 		this.x = 256;
 		this.y = 128;
@@ -60,4 +59,6 @@ class Player extends Entity {
 			}
 		}
 	}
+
+	health() { return this.hp; }
 }

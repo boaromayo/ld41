@@ -2,11 +2,11 @@
 /// <reference path='splashstate.ts' />
 
 class Game {
-	
 	game: Phaser.Game;
 
 	constructor() {
-		this.game = new Phaser.Game(640, 480, Phaser.CANVAS, 'ld41', { preload: this.preload, create: this.create });
+		this.game = new Phaser.Game(640, 480, Phaser.CANVAS, 'ld41', 
+			{ preload: this.preload, create: this.create });
 	}
 
 	preload() {
@@ -19,7 +19,6 @@ class Game {
 	create() {
 		this.game.state.start('splash');
 	}
-
 }
 
 window.onload = () => { new Game(); }

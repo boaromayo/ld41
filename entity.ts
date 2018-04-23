@@ -2,31 +2,24 @@
 /// <reference path='playstate.ts' />
 
 class Entity {
-	
-	// Initialize all global variables
-	// game object
 	game: Phaser.Game;
-
-	// movement
+	// position
 	x: number;
 	y: number;
 	tempx: number;
 	tempy: number;
-
 	// size
 	w: number;
 	h: number;
-
 	// direction
 	direction: { LEFT, RIGHT, UP, DOWN };
-
-	// map the entity is in
 	tilemap: Phaser.Tilemap;
-
-	// sprite
 	sprite: Phaser.Sprite;
 
-	constructor(game,tilemap,w,h) {
+	constructor(game: Phaser.Game,
+		tilemap: Phaser.Tilemap,
+		w: number,
+		h: number) {
 		this.game = game;
 		this.tilemap = tilemap;
 		this.w = w;

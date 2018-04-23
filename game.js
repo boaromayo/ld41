@@ -10,41 +10,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var PlayState = /** @class */ (function (_super) {
-    __extends(PlayState, _super);
-    function PlayState() {
-        return _super.call(this) || this;
-    }
-    PlayState.prototype.create = function () {
-        // Add in tilemap
-        this.tilemap = this.game.add.tilemap('map', 32, 32, 320, 160);
-        // Add in tileset
-        this.tilemap.addTilesetImage('tileset');
-        // Add layers
-        this.layer0 = this.tilemap.createLayer(0, 32, 32);
-        this.layer1 = this.tilemap.createLayer(1, 32, 32);
-        this.layer2 = this.tilemap.createLayer(2, 32, 32);
-        // Resize world for all layers
-        this.layer0.resizeWorld();
-        this.layer1.resizeWorld();
-        this.layer2.resizeWorld();
-        // Set collision tiles for map: 0 for blank, 
-        // 7-9 for lava and seas
-        this.tilemap.setCollision(0);
-        this.tilemap.setCollisionBetween(7, 9);
-        // Add in player
-        this.player = new Player(this.game, this.tilemap);
-        // Focus camera on player
-        this.game.camera.follow(this.player.getSprite());
-        // Add in health
-        var health = this.game.add.sprite(8, 8, 'itemset');
-        health.frame = 0;
-    };
-    PlayState.prototype.update = function () {
-        this.player.update();
-    };
-    return PlayState;
-}(Phaser.State));
 var Entity = /** @class */ (function () {
     function Entity(game, tilemap, w, h) {
         this.game = game;
@@ -119,34 +84,96 @@ var Player = /** @class */ (function (_super) {
             }
         }
     };
+    Player.prototype.health = function () { return this.hp; };
     return Player;
 }(Entity));
+var PlayState = /** @class */ (function (_super) {
+    __extends(PlayState, _super);
+    function PlayState() {
+        return _super.call(this) || this;
+    }
+    PlayState.prototype.create = function () {
+        // Add in tilemap
+        this.tilemap = this.game.add.tilemap('map', 32, 32, 320, 160);
+        // Add in tileset
+        this.tilemap.addTilesetImage('tileset', 'map');
+        // Add layers
+        this.layer0 = this.tilemap.createLayer(0, 32, 32);
+        this.layer1 = this.tilemap.createLayer(1, 32, 32);
+        // Resize world for all layers
+        this.layer0.resizeWorld();
+        this.layer1.resizeWorld();
+        // Set collision tiles for map: 0 for blank, 
+        // 7-9 for lava and seas
+        this.tilemap.setCollision(0);
+        this.tilemap.setCollisionBetween(7, 9);
+        // Add in player
+        this.player = new Player(this.game, this.tilemap);
+        // Focus camera on player
+        this.game.camera.follow(this.player.getSprite());
+        // Add text field
+        this.game.add.sprite(256, 368, 'text-field');
+        // Add in health
+        var health = this.game.add.sprite(8, 8, 'itemset');
+        health.frame = 0;
+    };
+    PlayState.prototype.update = function () {
+        this.player.update();
+    };
+    return PlayState;
+}(Phaser.State));
 var MenuState = /** @class */ (function (_super) {
     __extends(MenuState, _super);
     function MenuState() {
-        return _super.call(this) || this;
+        var _this = _super.call(this) || this;
+        _this.keyInput = _this.game.input.keyboard;
+        return _this;
     }
     MenuState.prototype.create = function () {
+        // Add keyboard input
+        this.keyInput.addCallbacks(this, null, null, this.keyPress);
         // Add background
-        this.sky = this.game.add.tileSprite(0, 0, 640, 960, 'sky');
-        this.sky.tilePosition.y = 0;
+        var sky = this.game.add.tileSprite(0, 0, 640, 960, 'sky');
+        sky.tilePosition.y = 0;
+        // Add grass foreground
         var grass = this.game.add.sprite(0, 400, 'grass');
         // Add title and make it transparent
         //var title = this.game.add.sprite(100, 200, 'title');
         //title.alpha = 0;
         //var titleTween = this.game.add.tween(title);
-        // Include cursor
-        //var cursorSprite = this.game.add.sprite(314, 300, 'cursor');
-        //cursorSprite.animations.play('go');
+        // Add text field
+        this.game.add.sprite(256, 368, 'text-field');
+        // Add cursor
+        this.cursor = this.game.add.bitmapData(24, 32, 'cursor');
+        this.cursor.fill(255, 255, 255, 1); // all white
+        this.cursor.addToWorld();
         // Add ok button
         this.game.add.button(256, 368, 'ok-btn', this.onClick, this, 1, 0, 2);
         // Add prompt
-        this.game.add.sprite(128, 416, 'prompt');
-        this.game.time.events.add(2000, this.update);
+        this.game.add.text(128, 416, 'Click OK to start', { font: '50px Open Sans' });
+        // Enable key uses
+        this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
+        this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
     };
     MenuState.prototype.update = function () {
-        while (this.sky.tilePosition.y > 400) {
-            this.sky.tilePosition.y -= 1;
+        // Update blinking cursor
+        this.cursor.fill(255, 255, 255, 0);
+        // Read input from text field after user presses enter
+        if (this.keyEnter.isDown) {
+            if (this.command === 'start') {
+                this.onClick;
+            }
+            this.command = ''; // Clear command
+        }
+    };
+    MenuState.prototype.render = function () { };
+    MenuState.prototype.keyPress = function () {
+        var x = 0; // x position of cursor
+        for (var i = 0; i < this.command.length; i++) {
+            // Draw every character and display on-screen
+            var character = this.command.charAt(i);
+            this.game.add.text(x * i, 400, character, { font: '24px Courier New', fill: '#fff' });
+            x = x + 32;
         }
     };
     MenuState.prototype.onClick = function () {
@@ -154,7 +181,6 @@ var MenuState = /** @class */ (function (_super) {
     };
     return MenuState;
 }(Phaser.State));
-/* LoadState loads the resources for the game. */
 var LoadState = /** @class */ (function (_super) {
     __extends(LoadState, _super);
     function LoadState() {
@@ -166,8 +192,7 @@ var LoadState = /** @class */ (function (_super) {
         this.game.load.image('grass', 'assets/grass-foreground.png');
         //this.game.load.image('title', 'assets/title.png');
         this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
-        //this.game.load.image('cursor', 'assets/entry-cursor.png');
-        this.game.load.image('prompt', 'assets/prompt.png');
+        this.game.load.image('text-field', 'assets/entry-box.png');
         // Load game assets.
         this.game.load.tilemap('map', 'assets/field.csv', null, Phaser.Tilemap.CSV);
         this.game.load.image('tileset', 'assets/tileset.png');
@@ -182,7 +207,7 @@ var LoadState = /** @class */ (function (_super) {
         this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
         // Wait two seconds and go to menu
         this.game.time.events.add(1500, function () {
-            return _this.game.state.start('play');
+            return _this.game.state.start('menu');
         });
     };
     return LoadState;
