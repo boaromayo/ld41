@@ -8,6 +8,8 @@ Just a simple text-based sandbox game, where you are a simple farmer. Your missi
 
 You can also take things from nearby villages, if you REALLY want to, of course.
 
+---
+
 **Arrow keys** - movement
 
 **Any other keys** - for commands
