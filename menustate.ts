@@ -1,27 +1,27 @@
-/// <reference path='game.ts' />
 /// <reference path='loadstate.ts' />
 /// <reference path='playstate.ts' />
+/// <reference path='constants.ts' />
 
 class MenuState extends Phaser.State {
-	game: Phaser.Game;
 	sky: Phaser.TileSprite;
 	keyInput: Phaser.Keyboard;
 	keyEnter: Phaser.Key;
 	keyBackspace: Phaser.Key;
 	cursor: Phaser.BitmapData;
+	cursorSprite: Phaser.Sprite;
+	text: Phaser.Text;
 	command: string;
 
-	constructor(game: Phaser.Game) {
+	constructor() {
 		super();
-		this.game = game;
-		this.keyInput = this.game.input.keyboard;
-		this.command = ' ';
+		this.command = '';
 	}
 
 	create() {
 		// Add keyboard input
+		this.keyInput = this.game.input.keyboard;
 		this.keyInput.addCallbacks(this, 
-			null, null, this.keyPress);
+			null, null, this.onPress);
 		// Add background
 		var sky = this.game.add.tileSprite(0, 0, 640, 960, 'sky');
 		sky.tilePosition.y = 0;
@@ -32,52 +32,77 @@ class MenuState extends Phaser.State {
 		//title.alpha = 0;
 		//var titleTween = this.game.add.tween(title);
 		// Add text field
-		this.game.add.sprite(128, 176, 'text-field');
+		var textfield = this.game.add.sprite(ORIGIN_CURSOR_MENU_X - 20, 
+			ORIGIN_CURSOR_MENU_Y - 16, 'text-field');
 		// Add cursor
-		this.cursor = this.game.add.bitmapData(24, 32, 'cursor');
-		this.cursor.fill(255,255,255,1); // all white
-		this.cursor.addToWorld(128, 336, 0.5, 0.5, 1, 1);
+		this.cursor = this.game.add.bitmapData(16, 32, 'cursor');
+		this.cursor.ctx.beginPath();
+		this.cursor.ctx.fillStyle = '#fff';
+		this.cursor.ctx.rect(0, 0, 16, 32);
+		this.cursor.ctx.fill();
+		this.cursorSprite = this.game.add.sprite(ORIGIN_CURSOR_MENU_X,
+			ORIGIN_CURSOR_MENU_Y, this.cursor);
+		// Add text
+		this.text = this.game.add.text(ORIGIN_CURSOR_MENU_X, 
+			ORIGIN_CURSOR_MENU_Y, this.command, {
+			font: '32px Courier New', fill: '#fff'
+		});
 		// Add ok button
-		this.game.add.button(256, 304, 'ok-btn', this.onClick, 
+		this.game.add.button(416, 
+			ORIGIN_CURSOR_MENU_Y - 16, 'ok-btn', this.onClick, 
 			this, 1, 0, 2);
 		// Add prompt
-		this.game.add.text(128, 396, 'Click OK to start', 
-			{ font: '50px Open Sans' });
+		this.game.add.text(ORIGIN_CURSOR_MENU_X + 12, 
+			396, 'Click OK to start', { font: '50px Open Sans' });
 		// Enable key uses
 		this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
 		this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
 	}
 
 	update() {
-		// Update blinking cursor
-		this.cursor.fill(255,255,255,0);
 		// Read input from text field after user presses enter
 		if (this.keyEnter.isDown) {
-			if (this.command === 'start') {
-				this.onClick;
+			// When "start" command executed
+			if (this.command.indexOf('start') != -1) {
+				this.onClick();
 			}
+			this.text.text = '';
 			this.command = ''; // Clear command
+			this.cursorSprite.x = ORIGIN_CURSOR_MENU_X; // Return cursor to origin
 		}
 		if (this.keyBackspace.isDown) {
-			this.cursor.cls;
-			this.command = '';
+			if (this.command.length > 0) {
+				var buffer = this.command.substring(0, this.command.length - 1);
+				this.command = buffer;
+				this.text.text = '';
+				this.drawChar(this.command, this.text, this.cursorSprite);
+			}
 		}
 	}
 
 	render() {}
 
-	keyPress() {
-		var x = 0; // x position of cursor
-		for (let i = 0; i < this.command.length; i++) {
-			// Draw every character and display on-screen
-			var character = this.command.charAt(i);
-			this.game.add.text(x*i, 400, character, 
-				{ font: '24px Courier New', fill: '#fff' });
-			x = x + 32;
+	onPress(char) {
+		if (this.command.length < 10) {
+			this.command += char;
+			this.drawChar(this.command, this.text, this.cursorSprite);
 		}
 	}
 
 	onClick() {
-		this.game.state.start('play');
+		this.game.state.start('play', true);
+	}
+
+	drawChar(word: string, 
+		text: Phaser.Text, 
+		sprite: Phaser.Sprite) {
+		var x = 0; // x position of cursor
+		text.fill = '#fff'; // turn character to white
+		// Draw every character and display on-screen
+		var character = word.charAt(word.length - 1);
+		text.text = text.text.concat(character);
+		x = text.width;
+		// Move cursor sprite
+		sprite.x = ORIGIN_CURSOR_MENU_X + x;
 	}
 }

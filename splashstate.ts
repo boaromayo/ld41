@@ -1,4 +1,3 @@
-/// <reference path='game.ts' />
 /// <reference path='loadstate.ts' />
 
 class SplashState extends Phaser.State {

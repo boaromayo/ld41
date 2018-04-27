@@ -1,20 +1,21 @@
-/// <reference path='game.ts' />
 /// <reference path='playstate.ts' />
 
-class Entity {
+enum Direction { UP, LEFT, RIGHT, DOWN }
+
+abstract class Entity {
 	game: Phaser.Game;
 	// position
 	x: number;
 	y: number;
-	tempx: number;
-	tempy: number;
+	vx: number;
+	vy: number;
 	// size
 	w: number;
 	h: number;
-	// direction
-	direction: { LEFT, RIGHT, UP, DOWN };
+	// other vars
+	direction: Direction;
 	tilemap: Phaser.Tilemap;
-	sprite: Phaser.Sprite;
+	abstract sprite: Phaser.Sprite;
 
 	constructor(game: Phaser.Game,
 		tilemap: Phaser.Tilemap,
@@ -24,9 +25,9 @@ class Entity {
 		this.tilemap = tilemap;
 		this.w = w;
 		this.h = h;
-		this.tempx = 0;
-		this.tempy = 0;
-		this.direction = this.direction.DOWN;
+		this.vx = 0;
+		this.vy = 0;
+		this.direction = Direction.DOWN;
 	}
 
 	create() {}

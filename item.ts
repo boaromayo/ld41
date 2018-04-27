@@ -1,7 +1,8 @@
 /// <reference path='entity.ts' />
 
-class Item extends Entity {
-	value: number;
+abstract class Item extends Entity {
+	sprite: Phaser.Sprite;
+	abstract value: number;
 	
 	constructor(game: Phaser.Game,
 		tilemap: Phaser.Tilemap,
@@ -10,7 +11,9 @@ class Item extends Entity {
 		super(game,tilemap,w,h);
 	}
 
-	update() {
-		
-	}
+	abstract create();
+
+	update() {}
+
+	abstract effect();
 }

@@ -1,4 +1,3 @@
-/// <reference path='game.ts' />
 /// <reference path='menustate.ts' />
 
 /* LoadState loads the resources for the game. */
@@ -15,13 +14,13 @@ class LoadState extends Phaser.State {
 		this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
 		this.game.load.image('text-field', 'assets/entry-box.png');
 		// Load game assets.
-		this.game.load.tilemap('map', 'assets/field.csv', 
-			null, Phaser.Tilemap.CSV);
+		this.game.load.tilemap('map', 'assets/island.json', 
+			null, Phaser.Tilemap.TILED_JSON);
 		this.game.load.image('tileset', 'assets/tileset.png');
 		this.game.load.spritesheet('itemset', 
 			'assets/itemset.png', 32, 32);
 		this.game.load.spritesheet('player', 
-			'assets/player.png', 32, 32, 4, 0, 0);
+			'assets/player.png', 32, 32, 20, 0, 0);
 		// Load keyboard for input.
 		this.game.input.keyboard.enabled = true;
 	}
@@ -30,8 +29,8 @@ class LoadState extends Phaser.State {
 		// Add "Now Loading..."
 		this.game.add.text(140, 200, 'Now loading...', 
 			{ font: '48px Courier New', fill: '#ffffff' });
-		// Wait two seconds and go to menu
-		this.game.time.events.add(1500, () => 
+		// Wait one second and go to menu
+		this.game.time.events.add(1000, () => 
 			this.game.state.start('menu'));
 	}
 }
