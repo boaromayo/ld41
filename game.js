@@ -4,6 +4,8 @@ var ORIGIN_CURSOR_MENU_X = 116;
 var ORIGIN_CURSOR_MENU_Y = 320;
 var ORIGIN_CURSOR_PLAY_X = 208;
 var ORIGIN_CURSOR_PLAY_Y = 410;
+var ORIGIN_PLAYER_X = 800;
+var ORIGIN_PLAYER_Y = 704;
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -39,21 +41,22 @@ var Player = /** @class */ (function (_super) {
     __extends(Player, _super);
     function Player(game, tilemap) {
         var _this = _super.call(this, game, tilemap, 32, 32) || this;
-        _this.x = _this.game.world.centerX;
-        _this.y = _this.game.world.centerY;
+        _this.x = ORIGIN_PLAYER_X;
+        _this.y = ORIGIN_PLAYER_Y;
         _this.cursors = _this.game.input.keyboard.createCursorKeys();
         _this.hp = 15;
         return _this;
     }
     Player.prototype.create = function () {
-        this.sprite = this.game.add.sprite(this.x, this.y, 'player', 0);
-        this.sprite.frame = 0;
+        this.sprite = new Phaser.Sprite(this.game, this.x, this.y, 'player');
         this.sprite.anchor.setTo(0.5, 0.5);
         // Add animations
         this.sprite.animations.add('down', [0, 3], 10, true, true);
         this.sprite.animations.add('right', [4, 7], 10, true, true);
         this.sprite.animations.add('left', [8, 11], 10, true, true);
         this.sprite.animations.add('up', [12, 15], 10, true, true);
+        this.game.physics.enable(this.sprite, Phaser.Physics.ARCADE);
+        this.game.add.existing(this.sprite);
     };
     Player.prototype.update = function () {
         if (this.cursors.left.isDown) {
@@ -94,6 +97,12 @@ var Player = /** @class */ (function (_super) {
         this.sprite.x += this.vx;
         this.sprite.y += this.vy;
     };
+    Player.prototype.heal = function () { this.hp++; };
+    Player.prototype.hurt = function () {
+        if (this.hp > 0) {
+            this.hp--;
+        }
+    };
     Player.prototype.health = function () { return this.hp; };
     return Player;
 }(Entity));
@@ -108,28 +117,31 @@ var PlayState = /** @class */ (function (_super) {
         // Enable key input for every letter key
         this.keyInput = this.game.input.keyboard;
         this.keyInput.addCallbacks(this, null, null, this.onPress);
-        // Start physics
-        this.game.physics.startSystem(Phaser.Physics.ARCADE);
         // Add in tilemap
-        var tilemap = this.game.add.tilemap('map', 32, 32, 320, 160);
+        this.tilemap = this.game.add.tilemap('map', 32, 32, 320, 160);
         // Add in tileset
-        tilemap.addTilesetImage('tileset');
-        // Set collision tiles for map: 0 for blank, 
-        // 7-9 for lava and seas
-        tilemap.setCollision(0);
-        tilemap.setCollisionBetween(7, 9);
+        this.tilemap.addTilesetImage('tileset');
         // Add layers
-        this.layer0 = tilemap.createLayer(0, this.game.width, this.game.height);
-        //var layer1 = this.tilemap.createLayer(1, this.game.width, this.game.height);
-        // Resize world for all layers
-        this.layer0.resizeWorld();
-        //this.layer1.resizeWorld();
+        this.floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
+        this.detail = this.tilemap.createLayer('detail');
+        this.objectLayer = this.tilemap.createLayer('event');
+        // Set collision tiles for map: 0 for blank, 
+        // 7-9 for lava and seas, and have first layer as collision layer
+        this.tilemap.setCollision(0, true, this.floor);
+        this.tilemap.setCollisionBetween(7, 9, true, this.floor);
+        // Add objects
+        //this.findObjectsByType('npc', this.tilemap, this.tilemap.layers[2]);
+        // Resize world
+        this.floor.resizeWorld();
         // Add in player
-        this.player = new Player(this.game, tilemap);
+        this.player = new Player(this.game, this.tilemap);
         this.player.create();
-        this.game.physics.enable(this.player.getSprite());
         // Focus camera on player
-        this.game.camera.follow(this.player.getSprite());
+        this.game.camera.follow(this.player.sprite);
+        // Start physics
+        this.game.physics.enable(this.player.sprite, Phaser.Physics.ARCADE);
+        // Add collisions explicitly to game
+        //this.game.add.existing(this.tilemap);
         // Add text field
         var textfield = this.game.add.sprite(ORIGIN_CURSOR_PLAY_X - 16, ORIGIN_CURSOR_PLAY_Y - 16, 'text-field');
         textfield.fixedToCamera = true;
@@ -139,8 +151,9 @@ var PlayState = /** @class */ (function (_super) {
         cursor.ctx.fillStyle = '#ffffff';
         cursor.ctx.rect(0, 0, 16, 32);
         cursor.ctx.fill();
-        this.cursorsprite = this.game.add.sprite(ORIGIN_CURSOR_PLAY_X, ORIGIN_CURSOR_PLAY_Y, cursor);
-        this.cursorsprite.visible = false;
+        var cursorspriteX = this.game.camera.x + ORIGIN_CURSOR_PLAY_X;
+        var cursorspriteY = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y + textfield.y + 24;
+        this.cursorsprite = this.game.add.sprite(cursorspriteX, cursorspriteY, cursor);
         // Add text for command
         this.text = this.game.add.text(ORIGIN_CURSOR_PLAY_X, ORIGIN_CURSOR_PLAY_Y, this.command, {
             font: '32px Courier New', fill: '#fff'
@@ -150,50 +163,59 @@ var PlayState = /** @class */ (function (_super) {
         var health = this.game.add.sprite(8, 8, 'itemset');
         health.frame = 0;
         health.fixedToCamera = true;
-        var healthText = this.game.add.text(health.x + 32, health.y, this.player.health().toString(), { font: '24px Open Sans', fill: '#000' });
-        healthText.fixedToCamera = true;
+        this.healthText = this.game.add.text(health.x + 32, health.y, this.player.health().toString(), { font: '24px Open Sans', fill: '#000' });
+        this.healthText.fixedToCamera = true;
         // Enable enter and backspace
         this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
         this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
     };
     PlayState.prototype.update = function () {
-        this.game.physics.arcade.collide(this.player.getSprite(), this.layer0);
+        this.game.physics.arcade.collide(this.player, this.floor);
+        this.moveCursor();
         if (this.keyEnter.isDown) {
-            if (this.command.indexOf('quit') != -1) {
+            // When "quit" cmd executed
+            if (this.command.indexOf('quit') != -1 ||
+                this.command.indexOf('exit') != -1) {
                 this.onExit();
+            }
+            else if (this.command.indexOf('hurt') != -1) {
+                this.player.hurt();
             }
             this.text.text = '';
             this.command = '';
-            this.cursorsprite.x = ORIGIN_CURSOR_PLAY_X;
+            this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X;
         }
         if (this.keyBackspace.isDown) {
             if (this.command.length > 0) {
                 var buffer = this.command.substring(0, this.command.length - 1);
                 this.command = buffer;
                 this.text.text = '';
-                this.drawChar(this.command, this.text, this.cursorsprite);
+                this.drawChar(this.command, this.text);
             }
         }
         this.player.update();
+        this.healthText.text = this.player.health().toString();
+    };
+    PlayState.prototype.moveCursor = function () {
+        var offset = 2;
+        this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X +
+            this.text.width - offset;
+        this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y - offset;
     };
     PlayState.prototype.onPress = function (char) {
         if (this.command.length < 10) {
             this.command += char;
-            this.drawChar(this.command, this.text, this.cursorsprite);
+            this.drawChar(this.command, this.text);
         }
     };
     PlayState.prototype.onExit = function () {
         this.game.state.start('menu', true);
     };
-    PlayState.prototype.drawChar = function (word, text, sprite) {
-        var x = 0; // x position of cursor
-        // Draw every character and display on-screen
+    PlayState.prototype.drawChar = function (word, text) {
+        // Draw last character and display on-screen
         var character = word.charAt(word.length - 1);
         text.fill = '#fff';
         text.text = text.text.concat(character);
-        x = text.width;
-        // Move cursor sprite
-        sprite.x = ORIGIN_CURSOR_PLAY_X + x;
     };
     return PlayState;
 }(Phaser.State));
@@ -241,7 +263,7 @@ var MenuState = /** @class */ (function (_super) {
     MenuState.prototype.update = function () {
         // Read input from text field after user presses enter
         if (this.keyEnter.isDown) {
-            // Get command 'start' from text field
+            // When "start" command executed
             if (this.command.indexOf('start') != -1) {
                 this.onClick();
             }
@@ -293,7 +315,7 @@ var LoadState = /** @class */ (function (_super) {
         this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
         this.game.load.image('text-field', 'assets/entry-box.png');
         // Load game assets.
-        this.game.load.tilemap('map', 'assets/field.csv', null, Phaser.Tilemap.CSV);
+        this.game.load.tilemap('map', 'assets/island.json', null, Phaser.Tilemap.TILED_JSON);
         this.game.load.image('tileset', 'assets/tileset.png');
         this.game.load.spritesheet('itemset', 'assets/itemset.png', 32, 32);
         this.game.load.spritesheet('player', 'assets/player.png', 32, 32, 20, 0, 0);
@@ -304,8 +326,8 @@ var LoadState = /** @class */ (function (_super) {
         var _this = this;
         // Add "Now Loading..."
         this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
-        // Wait two seconds and go to menu
-        this.game.time.events.add(1500, function () {
+        // Wait one second and go to menu
+        this.game.time.events.add(1000, function () {
             return _this.game.state.start('menu');
         });
     };
