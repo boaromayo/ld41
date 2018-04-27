@@ -156,7 +156,7 @@ var PlayState = /** @class */ (function (_super) {
         this.cursorsprite = this.game.add.sprite(cursorspriteX, cursorspriteY, cursor);
         // Add text for command
         this.text = this.game.add.text(ORIGIN_CURSOR_PLAY_X, ORIGIN_CURSOR_PLAY_Y, this.command, {
-            font: '32px Courier New', fill: '#fff'
+            font: '32px Consolas', fill: '#fff'
         });
         this.text.fixedToCamera = true;
         // Add in health
@@ -197,10 +197,9 @@ var PlayState = /** @class */ (function (_super) {
         this.healthText.text = this.player.health().toString();
     };
     PlayState.prototype.moveCursor = function () {
-        var offset = 2;
         this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X +
-            this.text.width - offset;
-        this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y - offset;
+            this.text.width;
+        this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y;
     };
     PlayState.prototype.onPress = function (char) {
         if (this.command.length < 10) {
@@ -250,7 +249,7 @@ var MenuState = /** @class */ (function (_super) {
         this.cursorSprite = this.game.add.sprite(ORIGIN_CURSOR_MENU_X, ORIGIN_CURSOR_MENU_Y, this.cursor);
         // Add text
         this.text = this.game.add.text(ORIGIN_CURSOR_MENU_X, ORIGIN_CURSOR_MENU_Y, this.command, {
-            font: '32px Courier New', fill: '#fff'
+            font: '32px Consolas', fill: '#fff'
         });
         // Add ok button
         this.game.add.button(416, ORIGIN_CURSOR_MENU_Y - 16, 'ok-btn', this.onClick, this, 1, 0, 2);
@@ -346,7 +345,8 @@ var SplashState = /** @class */ (function (_super) {
         var logo = this.game.add.sprite(0, 0, 'logo');
         logo.alpha = 0; // Set to invisible.
         var fade = this.game.add.tween(logo);
-        fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 1000, 0, true);
+        fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 500, 0, true);
+        fade.yoyoDelay(1000);
         this.game.time.events.add(6000, function () { return _this.game.state.start('load'); });
     };
     return SplashState;
