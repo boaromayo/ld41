@@ -115,8 +115,8 @@ class PlayState extends Phaser.State {
 	moveCursor() {
 		var offset = 2;
 		this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X + 
-			this.text.width;
-		this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y;
+			this.text.width - offset;
+		this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y - offset;
 	}
 
 	onPress(char) {
