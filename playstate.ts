@@ -29,15 +29,15 @@ class PlayState extends Phaser.State {
 		// Add in tilemap
 		this.tilemap = this.game.add.tilemap('map', 32, 32, 320, 160);
 		// Add in tileset
-		this.tilemap.addTilesetImage('tileset');
+		this.tilemap.addTilesetImage('tileset', 'tileset');
 		// Add layers
 		this.floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
 		this.detail = this.tilemap.createLayer('detail');
 		this.objectLayer = this.tilemap.createLayer('event');
 		// Set collision tiles for map: 0 for blank, 
 		// 7-9 for lava and seas, and have first layer as collision layer
-		this.tilemap.setCollision(0, true, this.floor);
-		this.tilemap.setCollisionBetween(7, 9, true, this.floor);
+		this.tilemap.setCollision([1, 8, 9, 10], true, this.floor);
+		this.tilemap.setCollisionBetween(8, 10, true, this.floor);
 		// Add objects
 		//this.findObjectsByType('npc', this.tilemap, this.tilemap.layers[2]);
 		// Resize world
@@ -69,7 +69,7 @@ class PlayState extends Phaser.State {
 		// Add text for command
 		this.text = this.game.add.text(ORIGIN_CURSOR_PLAY_X, 
 			ORIGIN_CURSOR_PLAY_Y, this.command, { 
-			font: '32px Courier New', fill: '#fff' 
+			font: '32px Consolas', fill: '#fff' 
 		});
 		this.text.fixedToCamera = true;
 		// Add in health
@@ -77,7 +77,7 @@ class PlayState extends Phaser.State {
 		health.frame = 0;
 		health.fixedToCamera = true;
 		this.healthText = this.game.add.text(health.x + 32, health.y, 
-			this.player.health().toString(), 
+			this.player.status().toString(), 
 			{ font: '24px Open Sans', fill: '#000' });
 		this.healthText.fixedToCamera = true;
 		// Enable enter and backspace
@@ -86,12 +86,16 @@ class PlayState extends Phaser.State {
 	}
 
 	update() {
-		this.game.physics.arcade.collide(this.player, this.floor);
+		this.game.physics.arcade.collide(this.player, this.detail, () => {
+			this.player.stop();
+		});
 		this.moveCursor();
 		if (this.keyEnter.isDown) {
-			// When "quit" cmd executed
+			// When "quit" cmd executed or
+			// player's health is at 0, go to menu
 			if (this.command.indexOf('quit') != -1 ||
-				this.command.indexOf('exit') != -1) {
+				this.command.indexOf('exit') != -1 ||
+				this.player.health() < 1) {
 				this.onExit();
 			} else if (this.command.indexOf('hurt') != -1) {
 				this.player.hurt();
@@ -109,7 +113,7 @@ class PlayState extends Phaser.State {
 			}
 		}
 		this.player.update();
-		this.healthText.text = this.player.health().toString();
+		this.healthText.text = this.player.status().toString();
 	}
 
 	moveCursor() {

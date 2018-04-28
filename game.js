@@ -4,8 +4,8 @@ var ORIGIN_CURSOR_MENU_X = 116;
 var ORIGIN_CURSOR_MENU_Y = 320;
 var ORIGIN_CURSOR_PLAY_X = 208;
 var ORIGIN_CURSOR_PLAY_Y = 410;
-var ORIGIN_PLAYER_X = 800;
-var ORIGIN_PLAYER_Y = 704;
+var ORIGIN_PLAYER_X = 832;
+var ORIGIN_PLAYER_Y = 736;
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -43,8 +43,11 @@ var Player = /** @class */ (function (_super) {
         var _this = _super.call(this, game, tilemap, 32, 32) || this;
         _this.x = ORIGIN_PLAYER_X;
         _this.y = ORIGIN_PLAYER_Y;
+        _this.tempx = _this.x;
+        _this.tempy = _this.y;
         _this.cursors = _this.game.input.keyboard.createCursorKeys();
-        _this.hp = 15;
+        _this.maxhp = 15;
+        _this.hp = _this.maxhp;
         return _this;
     }
     Player.prototype.create = function () {
@@ -62,48 +65,84 @@ var Player = /** @class */ (function (_super) {
         if (this.cursors.left.isDown) {
             this.direction = Direction.LEFT;
             this.sprite.animations.play('left', 10, true);
-            this.vx = -2;
+            this.setVelocity(-2, 0);
         }
         else if (this.cursors.right.isDown) {
             this.direction = Direction.RIGHT;
             this.sprite.animations.play('right', 10, true);
-            this.vx = 2;
+            this.setVelocity(2, 0);
         }
         else if (this.cursors.up.isDown) {
             this.direction = Direction.UP;
             this.sprite.animations.play('up', 10, true);
-            this.vy = -2;
+            this.setVelocity(0, -2);
         }
         else if (this.cursors.down.isDown) {
             this.direction = Direction.DOWN;
             this.sprite.animations.play('down', 10, true);
-            this.vy = 2;
+            this.setVelocity(0, 2);
         }
         else {
-            if (this.direction === Direction.LEFT) {
-                this.sprite.frame = 24;
-            }
-            else if (this.direction === Direction.RIGHT) {
-                this.sprite.frame = 20;
-            }
-            else if (this.direction === Direction.UP) {
-                this.sprite.frame = 28;
-            }
-            else if (this.direction === Direction.DOWN) {
-                this.sprite.frame = 16;
-            }
-            this.vx = this.vy = 0;
+            this.stop();
         }
-        this.sprite.x += this.vx;
-        this.sprite.y += this.vy;
+        this.tempx = this.vx;
+        this.tempy = this.vy;
+        this.move();
     };
-    Player.prototype.heal = function () { this.hp++; };
+    Player.prototype.move = function () {
+        this.sprite.x += this.tempx;
+        this.sprite.y += this.tempy;
+    };
+    Player.prototype.stop = function () {
+        this.sprite.animations.stop();
+        this.setVelocity(0, 0);
+        this.tempx = this.sprite.x;
+        this.tempy = this.sprite.y;
+    };
+    Player.prototype.heal = function () {
+        if (this.hp < this.maxhp) {
+            this.hp++;
+        }
+    };
+    Player.prototype.healX = function (hp) {
+        this.setHealth(this.hp + hp);
+    };
     Player.prototype.hurt = function () {
         if (this.hp > 0) {
             this.hp--;
         }
     };
+    Player.prototype.hurtX = function (hp) {
+        this.setHealth(this.hp - hp);
+    };
+    Player.prototype.setHealth = function (hp) {
+        // Gradually increment hp by one
+        // rather than setting it immediately
+        // update method will change hp per frame
+        var inc = 0;
+        if (hp < 0) {
+            hp = 0;
+        }
+        else if (hp > this.maxhp) {
+            hp = this.maxhp;
+        }
+        if (hp != this.hp) {
+            if (hp > this.hp) {
+                inc = 1;
+            }
+            else if (hp < this.hp) {
+                inc = -1;
+            }
+            hp += inc;
+        }
+    };
+    Player.prototype.setVelocity = function (velx, vely) {
+        this.vx = velx;
+        this.vy = vely;
+    };
     Player.prototype.health = function () { return this.hp; };
+    Player.prototype.maxHealth = function () { return this.maxhp; };
+    Player.prototype.status = function () { return this.hp + '\/' + this.maxhp; };
     return Player;
 }(Entity));
 var PlayState = /** @class */ (function (_super) {
@@ -120,15 +159,15 @@ var PlayState = /** @class */ (function (_super) {
         // Add in tilemap
         this.tilemap = this.game.add.tilemap('map', 32, 32, 320, 160);
         // Add in tileset
-        this.tilemap.addTilesetImage('tileset');
+        this.tilemap.addTilesetImage('tileset', 'tileset');
         // Add layers
         this.floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
         this.detail = this.tilemap.createLayer('detail');
         this.objectLayer = this.tilemap.createLayer('event');
         // Set collision tiles for map: 0 for blank, 
         // 7-9 for lava and seas, and have first layer as collision layer
-        this.tilemap.setCollision(0, true, this.floor);
-        this.tilemap.setCollisionBetween(7, 9, true, this.floor);
+        this.tilemap.setCollision([1, 8, 9, 10], true, this.floor);
+        this.tilemap.setCollisionBetween(8, 10, true, this.floor);
         // Add objects
         //this.findObjectsByType('npc', this.tilemap, this.tilemap.layers[2]);
         // Resize world
@@ -163,19 +202,24 @@ var PlayState = /** @class */ (function (_super) {
         var health = this.game.add.sprite(8, 8, 'itemset');
         health.frame = 0;
         health.fixedToCamera = true;
-        this.healthText = this.game.add.text(health.x + 32, health.y, this.player.health().toString(), { font: '24px Open Sans', fill: '#000' });
+        this.healthText = this.game.add.text(health.x + 32, health.y, this.player.status().toString(), { font: '24px Open Sans', fill: '#000' });
         this.healthText.fixedToCamera = true;
         // Enable enter and backspace
         this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
         this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
     };
     PlayState.prototype.update = function () {
-        this.game.physics.arcade.collide(this.player, this.floor);
+        var _this = this;
+        this.game.physics.arcade.collide(this.player, this.detail, function () {
+            _this.player.stop();
+        });
         this.moveCursor();
         if (this.keyEnter.isDown) {
-            // When "quit" cmd executed
+            // When "quit" cmd executed or
+            // player's health is at 0, go to main menu
             if (this.command.indexOf('quit') != -1 ||
-                this.command.indexOf('exit') != -1) {
+                this.command.indexOf('exit') != -1 ||
+                this.player.health() < 1) {
                 this.onExit();
             }
             else if (this.command.indexOf('hurt') != -1) {
@@ -194,12 +238,13 @@ var PlayState = /** @class */ (function (_super) {
             }
         }
         this.player.update();
-        this.healthText.text = this.player.health().toString();
+        this.healthText.text = this.player.status().toString();
     };
     PlayState.prototype.moveCursor = function () {
+        var offset = 2;
         this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X +
-            this.text.width;
-        this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y;
+            this.text.width - offset;
+        this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y - offset;
     };
     PlayState.prototype.onPress = function (char) {
         if (this.command.length < 10) {
@@ -217,6 +262,58 @@ var PlayState = /** @class */ (function (_super) {
         text.text = text.text.concat(character);
     };
     return PlayState;
+}(Phaser.State));
+var LoadState = /** @class */ (function (_super) {
+    __extends(LoadState, _super);
+    function LoadState() {
+        return _super.call(this) || this;
+    }
+    LoadState.prototype.preload = function () {
+        // Load menu assets.
+        this.game.load.image('sky', 'assets/sky-background.png');
+        this.game.load.image('grass', 'assets/grass-foreground.png');
+        //this.game.load.image('title', 'assets/title.png');
+        this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
+        this.game.load.image('text-field', 'assets/entry-box.png');
+        // Load game assets.
+        this.game.load.tilemap('map', 'assets/island.json', null, Phaser.Tilemap.TILED_JSON);
+        this.game.load.image('tileset', 'assets/tileset.png');
+        this.game.load.spritesheet('itemset', 'assets/itemset.png', 32, 32);
+        this.game.load.spritesheet('player', 'assets/player.png', 32, 32, 20, 0, 0);
+        // Load keyboard for input.
+        this.game.input.keyboard.enabled = true;
+    };
+    LoadState.prototype.create = function () {
+        var _this = this;
+        // Add "Now Loading..."
+        this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
+        // Wait one second and go to menu
+        this.game.time.events.add(1000, function () {
+            return _this.game.state.start('menu');
+        });
+    };
+    return LoadState;
+}(Phaser.State));
+var SplashState = /** @class */ (function (_super) {
+    __extends(SplashState, _super);
+    function SplashState() {
+        return _super.call(this) || this;
+    }
+    SplashState.prototype.preload = function () {
+        this.game.load.image('logo', 'assets/boaromayo-splash.png');
+    };
+    SplashState.prototype.create = function () {
+        var _this = this;
+        var logo = this.game.add.sprite(0, 0, 'logo');
+        logo.alpha = 0; // Set to invisible.
+        var fade = this.game.add.tween(logo);
+        fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 500, 0, true);
+        fade.yoyoDelay(2000);
+        this.game.time.events.add(7000, function () {
+            return _this.game.state.start('load');
+        });
+    };
+    return SplashState;
 }(Phaser.State));
 var MenuState = /** @class */ (function (_super) {
     __extends(MenuState, _super);
@@ -301,56 +398,6 @@ var MenuState = /** @class */ (function (_super) {
     };
     return MenuState;
 }(Phaser.State));
-var LoadState = /** @class */ (function (_super) {
-    __extends(LoadState, _super);
-    function LoadState() {
-        return _super.call(this) || this;
-    }
-    LoadState.prototype.preload = function () {
-        // Load menu assets.
-        this.game.load.image('sky', 'assets/sky-background.png');
-        this.game.load.image('grass', 'assets/grass-foreground.png');
-        //this.game.load.image('title', 'assets/title.png');
-        this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
-        this.game.load.image('text-field', 'assets/entry-box.png');
-        // Load game assets.
-        this.game.load.tilemap('map', 'assets/island.json', null, Phaser.Tilemap.TILED_JSON);
-        this.game.load.image('tileset', 'assets/tileset.png');
-        this.game.load.spritesheet('itemset', 'assets/itemset.png', 32, 32);
-        this.game.load.spritesheet('player', 'assets/player.png', 32, 32, 20, 0, 0);
-        // Load keyboard for input.
-        this.game.input.keyboard.enabled = true;
-    };
-    LoadState.prototype.create = function () {
-        var _this = this;
-        // Add "Now Loading..."
-        this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
-        // Wait one second and go to menu
-        this.game.time.events.add(1000, function () {
-            return _this.game.state.start('menu');
-        });
-    };
-    return LoadState;
-}(Phaser.State));
-var SplashState = /** @class */ (function (_super) {
-    __extends(SplashState, _super);
-    function SplashState() {
-        return _super.call(this) || this;
-    }
-    SplashState.prototype.preload = function () {
-        this.game.load.image('logo', 'assets/boaromayo-splash.png');
-    };
-    SplashState.prototype.create = function () {
-        var _this = this;
-        var logo = this.game.add.sprite(0, 0, 'logo');
-        logo.alpha = 0; // Set to invisible.
-        var fade = this.game.add.tween(logo);
-        fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 500, 0, true);
-        fade.yoyoDelay(1000);
-        this.game.time.events.add(6000, function () { return _this.game.state.start('load'); });
-    };
-    return SplashState;
-}(Phaser.State));
 var Game = /** @class */ (function () {
     function Game() {
         this.game = new Phaser.Game(640, 480, Phaser.CANVAS, 'ld41', { preload: this.preload, create: this.create });
@@ -362,7 +409,13 @@ var Game = /** @class */ (function () {
         this.game.state.add('play', PlayState);
     };
     Game.prototype.create = function () {
-        this.game.state.start('splash');
+        var debug = true;
+        if (debug) {
+            this.game.state.start('load');
+        }
+        else {
+            this.game.state.start('splash');
+        }
     };
     return Game;
 }());

@@ -17,7 +17,12 @@ class Game {
 	}
 
 	create() {
-		this.game.state.start('splash');
+    var debug = true;
+    if (debug) {
+      this.game.state.start('load');
+    } else {
+      this.game.state.start('splash');
+    }
 	}
 }
 

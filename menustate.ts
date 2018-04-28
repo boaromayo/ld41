@@ -45,7 +45,7 @@ class MenuState extends Phaser.State {
 		// Add text
 		this.text = this.game.add.text(ORIGIN_CURSOR_MENU_X, 
 			ORIGIN_CURSOR_MENU_Y, this.command, {
-			font: '32px Courier New', fill: '#fff'
+			font: '32px Consolas', fill: '#fff'
 		});
 		// Add ok button
 		this.game.add.button(416, 
