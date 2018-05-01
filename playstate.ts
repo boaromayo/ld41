@@ -6,9 +6,8 @@
 class PlayState extends Phaser.State {
 	player: Player;
 	tilemap: Phaser.Tilemap;
-	floor: Phaser.TilemapLayer;
-	detail: Phaser.TilemapLayer;
-	objectLayer: Phaser.TilemapLayer;
+	collision: Phaser.TilemapLayer;
+	//objectLayer: Phaser.TilemapLayer;
 	keyInput: Phaser.Keyboard;
 	keyEnter: Phaser.Key;
 	keyBackspace: Phaser.Key;
@@ -23,6 +22,7 @@ class PlayState extends Phaser.State {
 	}
 
 	create() {
+		this.game.physics.startSystem(Phaser.Physics.ARCADE);
 		// Enable key input for every letter key
 		this.keyInput = this.game.input.keyboard;
 		this.keyInput.addCallbacks(this, null, null, this.onPress);
@@ -31,17 +31,14 @@ class PlayState extends Phaser.State {
 		// Add in tileset
 		this.tilemap.addTilesetImage('tileset', 'tileset');
 		// Add layers
-		this.floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
-		this.detail = this.tilemap.createLayer('detail');
-		this.objectLayer = this.tilemap.createLayer('event');
-		// Set collision tiles for map: 0 for blank, 
+		var floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
+		this.collision = this.tilemap.createLayer('detail');
+		//this.objectLayer = this.tilemap.createLayer('event');
+		// Set collision tiles for map: 0-1 for null and blank, 
 		// 7-9 for lava and seas, and have first layer as collision layer
-		this.tilemap.setCollision([1, 8, 9, 10], true, this.floor);
-		this.tilemap.setCollisionBetween(8, 10, true, this.floor);
+		this.tilemap.setCollision([0, 1, 8, 9, 10], true, this.collision);
 		// Add objects
 		//this.findObjectsByType('npc', this.tilemap, this.tilemap.layers[2]);
-		// Resize world
-		this.floor.resizeWorld();
 		// Add in player
 		this.player = new Player(this.game, this.tilemap);
 		this.player.create();
@@ -49,8 +46,6 @@ class PlayState extends Phaser.State {
 		this.game.camera.follow(this.player.sprite);
 		// Start physics
 		this.game.physics.enable(this.player.sprite, Phaser.Physics.ARCADE);
-        // Add collisions explicitly to game
-        //this.game.add.existing(this.tilemap);
 		// Add text field
 		var textfield = this.game.add.sprite(ORIGIN_CURSOR_PLAY_X - 16, 
 			ORIGIN_CURSOR_PLAY_Y - 16, 'text-field');
@@ -83,10 +78,14 @@ class PlayState extends Phaser.State {
 		// Enable enter and backspace
 		this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
 		this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
+		// Resize world
+		floor.resizeWorld();
+		this.collision.resizeWorld();
 	}
 
 	update() {
-		this.game.physics.arcade.collide(this.player, this.detail, () => {
+		this.player.update();
+		this.game.physics.arcade.collide(this.player, this.collision, () => {
 			this.player.stop();
 		});
 		this.moveCursor();

@@ -2,8 +2,6 @@
 
 class Player extends Entity {
   sprite: Phaser.Sprite;
-  tempx: number;
-  tempy: number;
   //tool: Tool;
   cursors: Phaser.CursorKeys;
   hp: number;
@@ -14,15 +12,13 @@ class Player extends Entity {
     super(game,tilemap,32,32);
     this.x = ORIGIN_PLAYER_X;
     this.y = ORIGIN_PLAYER_Y;
-    this.tempx = this.x;
-    this.tempy = this.y;
     this.cursors = this.game.input.keyboard.createCursorKeys();
     this.maxhp = 15;
     this.hp = this.maxhp;
   }
 
   create() {
-    this.sprite = new Phaser.Sprite(this.game, this.x, this.y, 'player');
+    this.sprite = this.game.add.sprite(this.x, this.y, 'player');
     this.sprite.anchor.setTo(0.5,0.5);
     // Add animations
     this.sprite.animations.add('down', [0,3], 10, true, true);
@@ -31,44 +27,45 @@ class Player extends Entity {
     this.sprite.animations.add('up', [12,15], 10, true, true);
 
     this.game.physics.enable(this.sprite, Phaser.Physics.ARCADE);
-    this.game.add.existing(this.sprite);
+    //this.game.physics.arcade.enableBody(this.sprite);
   }
 
   update() {
     if (this.cursors.left.isDown) {
       this.direction = Direction.LEFT;
       this.sprite.animations.play('left', 10, true);
-      this.setVelocity(-2,0);
+      this.setVelocityX(-1);
     } else if (this.cursors.right.isDown) {
       this.direction = Direction.RIGHT;
       this.sprite.animations.play('right', 10, true);
-      this.setVelocity(2,0);
+      this.setVelocityX(1);
     } else if (this.cursors.up.isDown) {
       this.direction = Direction.UP;
       this.sprite.animations.play('up', 10, true);
-      this.setVelocity(0,-2);
+      this.setVelocityY(-1);
     } else if (this.cursors.down.isDown) {
       this.direction = Direction.DOWN;
       this.sprite.animations.play('down', 10, true);
-      this.setVelocity(0,2);
+      this.setVelocityY(1);
     } else {
       this.stop();
     }
-    this.tempx = this.vx;
-    this.tempy = this.vy;
+    this.x += this.sprite.body.velocity.x;
+    this.y += this.sprite.body.velocity.y;
     this.move();
   }
 
   move() {
-    this.sprite.x += this.tempx;
-    this.sprite.y += this.tempy;
+    this.sprite.x = this.x;
+    this.sprite.y = this.y;
   }
 
   stop() {
     this.sprite.animations.stop();
-    this.setVelocity(0,0);
-    this.tempx = this.sprite.x;
-    this.tempy = this.sprite.y;
+    this.setVelocityX(0);
+    this.setVelocityY(0);
+    this.x = this.sprite.x;
+    this.y = this.sprite.y;
   }
 
   heal() {
@@ -111,9 +108,12 @@ class Player extends Entity {
      }
   }
 
-  setVelocity(velx: number, vely: number) { 
-    this.vx = velx;
-    this.vy = vely;
+  setVelocityX(velx: number) { 
+    this.sprite.body.velocity.x = velx;
+  }
+
+  setVelocityY(vely: number) {
+    this.sprite.body.velocity.y = vely;
   }
 
   health(): number { return this.hp; }

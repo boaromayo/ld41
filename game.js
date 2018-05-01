@@ -43,15 +43,13 @@ var Player = /** @class */ (function (_super) {
         var _this = _super.call(this, game, tilemap, 32, 32) || this;
         _this.x = ORIGIN_PLAYER_X;
         _this.y = ORIGIN_PLAYER_Y;
-        _this.tempx = _this.x;
-        _this.tempy = _this.y;
         _this.cursors = _this.game.input.keyboard.createCursorKeys();
         _this.maxhp = 15;
         _this.hp = _this.maxhp;
         return _this;
     }
     Player.prototype.create = function () {
-        this.sprite = new Phaser.Sprite(this.game, this.x, this.y, 'player');
+        this.sprite = this.game.add.sprite(this.x, this.y, 'player');
         this.sprite.anchor.setTo(0.5, 0.5);
         // Add animations
         this.sprite.animations.add('down', [0, 3], 10, true, true);
@@ -59,45 +57,49 @@ var Player = /** @class */ (function (_super) {
         this.sprite.animations.add('left', [8, 11], 10, true, true);
         this.sprite.animations.add('up', [12, 15], 10, true, true);
         this.game.physics.enable(this.sprite, Phaser.Physics.ARCADE);
-        this.game.add.existing(this.sprite);
+        //this.game.physics.arcade.enableBody(this.sprite);
     };
     Player.prototype.update = function () {
+        /*this.game.physics.arcade.collide(this.sprite, this.tilemap.getLayer('floor'), function () {
+            console.log('collide');
+        }, null, this);*/
         if (this.cursors.left.isDown) {
             this.direction = Direction.LEFT;
             this.sprite.animations.play('left', 10, true);
-            this.setVelocity(-2, 0);
+            this.setVelocityX(-1);
         }
         else if (this.cursors.right.isDown) {
             this.direction = Direction.RIGHT;
             this.sprite.animations.play('right', 10, true);
-            this.setVelocity(2, 0);
+            this.setVelocityX(1);
         }
         else if (this.cursors.up.isDown) {
             this.direction = Direction.UP;
             this.sprite.animations.play('up', 10, true);
-            this.setVelocity(0, -2);
+            this.setVelocityY(-1);
         }
         else if (this.cursors.down.isDown) {
             this.direction = Direction.DOWN;
             this.sprite.animations.play('down', 10, true);
-            this.setVelocity(0, 2);
+            this.setVelocityY(1);
         }
         else {
             this.stop();
         }
-        this.tempx = this.vx;
-        this.tempy = this.vy;
+        this.x += this.sprite.body.velocity.x;
+        this.y += this.sprite.body.velocity.y;
         this.move();
     };
     Player.prototype.move = function () {
-        this.sprite.x += this.tempx;
-        this.sprite.y += this.tempy;
+        this.sprite.x = this.x;
+        this.sprite.y = this.y;
     };
     Player.prototype.stop = function () {
         this.sprite.animations.stop();
-        this.setVelocity(0, 0);
-        this.tempx = this.sprite.x;
-        this.tempy = this.sprite.y;
+        this.setVelocityX(0);
+        this.setVelocityY(0);
+        this.x = this.sprite.x;
+        this.y = this.sprite.y;
     };
     Player.prototype.heal = function () {
         if (this.hp < this.maxhp) {
@@ -136,9 +138,11 @@ var Player = /** @class */ (function (_super) {
             hp += inc;
         }
     };
-    Player.prototype.setVelocity = function (velx, vely) {
-        this.vx = velx;
-        this.vy = vely;
+    Player.prototype.setVelocityX = function (velx) {
+        this.sprite.body.velocity.x = velx;
+    };
+    Player.prototype.setVelocityY = function (vely) {
+        this.sprite.body.velocity.y = vely;
     };
     Player.prototype.health = function () { return this.hp; };
     Player.prototype.maxHealth = function () { return this.maxhp; };
@@ -153,6 +157,7 @@ var PlayState = /** @class */ (function (_super) {
         return _this;
     }
     PlayState.prototype.create = function () {
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
         // Enable key input for every letter key
         this.keyInput = this.game.input.keyboard;
         this.keyInput.addCallbacks(this, null, null, this.onPress);
@@ -161,17 +166,14 @@ var PlayState = /** @class */ (function (_super) {
         // Add in tileset
         this.tilemap.addTilesetImage('tileset', 'tileset');
         // Add layers
-        this.floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
-        this.detail = this.tilemap.createLayer('detail');
-        this.objectLayer = this.tilemap.createLayer('event');
-        // Set collision tiles for map: 0 for blank, 
+        var floor = this.tilemap.createLayer('floor');
+        this.collision = this.tilemap.createLayer('detail');
+        //this.objectLayer = this.tilemap.createLayer('event');
+        // Set collision tiles for map: 0-1 for null and blank, 
         // 7-9 for lava and seas, and have first layer as collision layer
-        this.tilemap.setCollision([1, 8, 9, 10], true, this.floor);
-        this.tilemap.setCollisionBetween(8, 10, true, this.floor);
+        this.tilemap.setCollision([0, 1, 8, 9, 10], true, this.collision);
         // Add objects
         //this.findObjectsByType('npc', this.tilemap, this.tilemap.layers[2]);
-        // Resize world
-        this.floor.resizeWorld();
         // Add in player
         this.player = new Player(this.game, this.tilemap);
         this.player.create();
@@ -179,8 +181,6 @@ var PlayState = /** @class */ (function (_super) {
         this.game.camera.follow(this.player.sprite);
         // Start physics
         this.game.physics.enable(this.player.sprite, Phaser.Physics.ARCADE);
-        // Add collisions explicitly to game
-        //this.game.add.existing(this.tilemap);
         // Add text field
         var textfield = this.game.add.sprite(ORIGIN_CURSOR_PLAY_X - 16, ORIGIN_CURSOR_PLAY_Y - 16, 'text-field');
         textfield.fixedToCamera = true;
@@ -207,16 +207,20 @@ var PlayState = /** @class */ (function (_super) {
         // Enable enter and backspace
         this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
         this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
+        // Resize world
+        floor.resizeWorld();
+        this.collision.resizeWorld();
     };
     PlayState.prototype.update = function () {
         var _this = this;
-        this.game.physics.arcade.collide(this.player, this.detail, function () {
+        this.player.update();
+        this.game.physics.arcade.collide(this.player, this.collision, function () {
             _this.player.stop();
         });
         this.moveCursor();
         if (this.keyEnter.isDown) {
             // When "quit" cmd executed or
-            // player's health is at 0, go to main menu
+            // player's health is at 0, go to menu
             if (this.command.indexOf('quit') != -1 ||
                 this.command.indexOf('exit') != -1 ||
                 this.player.health() < 1) {
@@ -262,58 +266,6 @@ var PlayState = /** @class */ (function (_super) {
         text.text = text.text.concat(character);
     };
     return PlayState;
-}(Phaser.State));
-var LoadState = /** @class */ (function (_super) {
-    __extends(LoadState, _super);
-    function LoadState() {
-        return _super.call(this) || this;
-    }
-    LoadState.prototype.preload = function () {
-        // Load menu assets.
-        this.game.load.image('sky', 'assets/sky-background.png');
-        this.game.load.image('grass', 'assets/grass-foreground.png');
-        //this.game.load.image('title', 'assets/title.png');
-        this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
-        this.game.load.image('text-field', 'assets/entry-box.png');
-        // Load game assets.
-        this.game.load.tilemap('map', 'assets/island.json', null, Phaser.Tilemap.TILED_JSON);
-        this.game.load.image('tileset', 'assets/tileset.png');
-        this.game.load.spritesheet('itemset', 'assets/itemset.png', 32, 32);
-        this.game.load.spritesheet('player', 'assets/player.png', 32, 32, 20, 0, 0);
-        // Load keyboard for input.
-        this.game.input.keyboard.enabled = true;
-    };
-    LoadState.prototype.create = function () {
-        var _this = this;
-        // Add "Now Loading..."
-        this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
-        // Wait one second and go to menu
-        this.game.time.events.add(1000, function () {
-            return _this.game.state.start('menu');
-        });
-    };
-    return LoadState;
-}(Phaser.State));
-var SplashState = /** @class */ (function (_super) {
-    __extends(SplashState, _super);
-    function SplashState() {
-        return _super.call(this) || this;
-    }
-    SplashState.prototype.preload = function () {
-        this.game.load.image('logo', 'assets/boaromayo-splash.png');
-    };
-    SplashState.prototype.create = function () {
-        var _this = this;
-        var logo = this.game.add.sprite(0, 0, 'logo');
-        logo.alpha = 0; // Set to invisible.
-        var fade = this.game.add.tween(logo);
-        fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 500, 0, true);
-        fade.yoyoDelay(2000);
-        this.game.time.events.add(7000, function () {
-            return _this.game.state.start('load');
-        });
-    };
-    return SplashState;
 }(Phaser.State));
 var MenuState = /** @class */ (function (_super) {
     __extends(MenuState, _super);
@@ -397,6 +349,58 @@ var MenuState = /** @class */ (function (_super) {
         sprite.x = ORIGIN_CURSOR_MENU_X + x;
     };
     return MenuState;
+}(Phaser.State));
+var LoadState = /** @class */ (function (_super) {
+    __extends(LoadState, _super);
+    function LoadState() {
+        return _super.call(this) || this;
+    }
+    LoadState.prototype.preload = function () {
+        // Load menu assets.
+        this.game.load.image('sky', 'assets/sky-background.png');
+        this.game.load.image('grass', 'assets/grass-foreground.png');
+        //this.game.load.image('title', 'assets/title.png');
+        this.game.load.spritesheet('ok-btn', 'assets/ok-button.png', 128, 64);
+        this.game.load.image('text-field', 'assets/entry-box.png');
+        // Load game assets.
+        this.game.load.tilemap('map', 'assets/island.json', null, Phaser.Tilemap.TILED_JSON);
+        this.game.load.image('tileset', 'assets/tileset.png');
+        this.game.load.spritesheet('itemset', 'assets/itemset.png', 32, 32);
+        this.game.load.spritesheet('player', 'assets/player.png', 32, 32, 20, 0, 0);
+        // Load keyboard for input.
+        this.game.input.keyboard.enabled = true;
+    };
+    LoadState.prototype.create = function () {
+        var _this = this;
+        // Add "Now Loading..."
+        this.game.add.text(140, 200, 'Now loading...', { font: '48px Courier New', fill: '#ffffff' });
+        // Wait one second and go to menu
+        this.game.time.events.add(1000, function () {
+            return _this.game.state.start('menu');
+        });
+    };
+    return LoadState;
+}(Phaser.State));
+var SplashState = /** @class */ (function (_super) {
+    __extends(SplashState, _super);
+    function SplashState() {
+        return _super.call(this) || this;
+    }
+    SplashState.prototype.preload = function () {
+        this.game.load.image('logo', 'assets/boaromayo-splash.png');
+    };
+    SplashState.prototype.create = function () {
+        var _this = this;
+        var logo = this.game.add.sprite(0, 0, 'logo');
+        logo.alpha = 0; // Set to invisible.
+        var fade = this.game.add.tween(logo);
+        fade.to({ alpha: 1 }, 2000, Phaser.Easing.Linear.None, true, 500, 0, true);
+        fade.yoyoDelay(2000);
+        this.game.time.events.add(7000, function () {
+            return _this.game.state.start('load');
+        });
+    };
+    return SplashState;
 }(Phaser.State));
 var Game = /** @class */ (function () {
     function Game() {
