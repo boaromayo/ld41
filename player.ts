@@ -1,20 +1,29 @@
 /// <reference path='entity.ts' />
+/// <reference path='item.ts' />
+/// <reference path='constants.ts' />
 
 class Player extends Entity {
   sprite: Phaser.Sprite;
-  //tool: Tool;
+  items: Array<Item>;
   cursors: Phaser.CursorKeys;
+  layer: Phaser.TilemapLayer;
   hp: number;
   maxhp: number;
   gems: number;
+  maxItems: number;
 
-  constructor(game: Phaser.Game,tilemap: Phaser.Tilemap) {
+  constructor(game: Phaser.Game,tilemap: Phaser.Tilemap,layer: Phaser.TilemapLayer) {
     super(game,tilemap,32,32);
     this.x = ORIGIN_PLAYER_X;
     this.y = ORIGIN_PLAYER_Y;
     this.cursors = this.game.input.keyboard.createCursorKeys();
-    this.maxhp = 15;
+    this.layer = layer;
+    this.maxhp = MAX_DEFAULT_HEALTH;
     this.hp = this.maxhp;
+    this.items = new Array<Item>();
+    this.maxItems = 9;
+    
+    this.create();
   }
 
   create() {
@@ -25,34 +34,37 @@ class Player extends Entity {
     this.sprite.animations.add('right', [4,7], 10, true, true);
     this.sprite.animations.add('left', [8,11], 10, true, true);
     this.sprite.animations.add('up', [12,15], 10, true, true);
-
+    // Enable collisions
     this.game.physics.enable(this.sprite, Phaser.Physics.ARCADE);
-    //this.game.physics.arcade.enableBody(this.sprite);
+    this.game.physics.arcade.enableBody(this.sprite);
   }
 
   update() {
+    var speed = 100;
+    this.game.physics.arcade.collide(this.sprite, this.layer);
+    this.sprite.body.velocity.set(0);
+
     if (this.cursors.left.isDown) {
       this.direction = Direction.LEFT;
       this.sprite.animations.play('left', 10, true);
-      this.setVelocityX(-1);
+      this.setVelocityX(-speed);
     } else if (this.cursors.right.isDown) {
       this.direction = Direction.RIGHT;
       this.sprite.animations.play('right', 10, true);
-      this.setVelocityX(1);
+      this.setVelocityX(speed);
     } else if (this.cursors.up.isDown) {
       this.direction = Direction.UP;
       this.sprite.animations.play('up', 10, true);
-      this.setVelocityY(-1);
+      this.setVelocityY(-speed);
     } else if (this.cursors.down.isDown) {
       this.direction = Direction.DOWN;
       this.sprite.animations.play('down', 10, true);
-      this.setVelocityY(1);
+      this.setVelocityY(speed);
     } else {
       this.stop();
     }
     this.x += this.sprite.body.velocity.x;
     this.y += this.sprite.body.velocity.y;
-    this.move();
   }
 
   move() {
@@ -68,18 +80,24 @@ class Player extends Entity {
     this.y = this.sprite.y;
   }
 
+  flash() {
+    // TODO: Flash animation of player after damage.
+  }
+
   heal() {
-    if (this.hp < this.maxhp) { 
+    if (this.isHurt()) { 
       this.hp++; 
     }
   }
 
   healX(hp: number) {
-    this.setHealth(this.hp+hp);
+    if (this.isHurt()) {
+      this.setHealth(this.hp+hp);
+    }
   }
 
   hurt() { 
-    if (this.hp > 0) {
+    if (!this.isDead()) {
       this.hp--;
     }
   }
@@ -121,4 +139,16 @@ class Player extends Entity {
   maxHealth(): number { return this.maxhp; }
 
   status(): string { return this.hp + '\/' + this.maxhp; }
+
+  isHurt(): boolean { return this.hp < this.maxhp; }
+
+  isDead(): boolean { return this.hp <= 0; }
+
+  isBagFull(): boolean { return this.items.length > this.maxItems; }
+
+  addItem(item: Item) {
+    if (this.isBagFull) {
+      this.items.push(item);
+    }
+  }
 }

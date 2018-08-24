@@ -1,20 +1,21 @@
 /// <reference path='game.ts' />
 /// <reference path='loadstate.ts' />
 /// <reference path='player.ts' />
+/// <reference path='cursor.ts' />
 /// <reference path='constants.ts' />
 
 class PlayState extends Phaser.State {
 	player: Player;
 	tilemap: Phaser.Tilemap;
-	collision: Phaser.TilemapLayer;
-	//objectLayer: Phaser.TilemapLayer;
+	objects: Array<any>;
 	keyInput: Phaser.Keyboard;
 	keyEnter: Phaser.Key;
 	keyBackspace: Phaser.Key;
-	cursorsprite: Phaser.Sprite;
-	text: Phaser.Text;
+	cursor: Cursor;
+	//cursorsprite: Phaser.Sprite;
+	text: Phaser.BitmapText;
 	command: string;
-	healthText: Phaser.Text;
+	healthText: Phaser.BitmapText;
 	
 	constructor() {
 		super();
@@ -31,17 +32,18 @@ class PlayState extends Phaser.State {
 		// Add in tileset
 		this.tilemap.addTilesetImage('tileset', 'tileset');
 		// Add layers
-		var floor = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
-		this.collision = this.tilemap.createLayer('detail');
-		//this.objectLayer = this.tilemap.createLayer('event');
+		var collision = this.tilemap.createLayer('floor', this.game.world.width, this.game.world.height);
+		var detail = this.tilemap.createLayer('detail');
+		// Initialize objects
+		this.createObjects();
 		// Set collision tiles for map: 0-1 for null and blank, 
-		// 7-9 for lava and seas, and have first layer as collision layer
-		this.tilemap.setCollision([0, 1, 8, 9, 10], true, this.collision);
-		// Add objects
-		//this.findObjectsByType('npc', this.tilemap, this.tilemap.layers[2]);
+		// 8-10 for lava and seas, and have first layer as collision layer
+		this.tilemap.setCollision([0, 1, 8, 9, 10], true, collision, true);
+		// Resize world
+		collision.resizeWorld();
+		detail.resizeWorld();
 		// Add in player
-		this.player = new Player(this.game, this.tilemap);
-		this.player.create();
+		this.player = new Player(this.game, this.tilemap, collision);
 		// Focus camera on player
 		this.game.camera.follow(this.player.sprite);
 		// Start physics
@@ -51,7 +53,8 @@ class PlayState extends Phaser.State {
 			ORIGIN_CURSOR_PLAY_Y - 16, 'text-field');
 		textfield.fixedToCamera = true;
 		// Add cursor
-		var cursor = this.game.add.bitmapData(16, 32, 'cursor');
+		this.cursor = new Cursor(this.game, 16, 32);
+		/*var cursor = this.game.add.bitmapData(16, 32, 'cursor');
 		cursor.ctx.beginPath();
 		cursor.ctx.fillStyle = '#ffffff';
 		cursor.ctx.rect(0, 0, 16, 32);
@@ -60,34 +63,73 @@ class PlayState extends Phaser.State {
 		var cursorspriteY = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y + textfield.y + 24;
 		this.cursorsprite = this.game.add.sprite(
 			cursorspriteX, cursorspriteY,
-			cursor);
+			cursor);*/
 		// Add text for command
-		this.text = this.game.add.text(ORIGIN_CURSOR_PLAY_X, 
-			ORIGIN_CURSOR_PLAY_Y, this.command, { 
-			font: '32px Consolas', fill: '#fff' 
-		});
+		this.text = this.game.add.bitmapText(ORIGIN_CURSOR_PLAY_X, 
+			ORIGIN_CURSOR_PLAY_Y, 'upheaval', this.command, 48);
+		//this.text = this.game.add.bitmapText(ORIGIN_CURSOR_PLAY_X,
+			//ORIGIN_CURSOR_PLAY_Y, 'retro', this.command, 48);
 		this.text.fixedToCamera = true;
 		// Add in health
 		var health = this.game.add.sprite(8, 8, 'itemset');
 		health.frame = 0;
 		health.fixedToCamera = true;
-		this.healthText = this.game.add.text(health.x + 32, health.y, 
-			this.player.status().toString(), 
-			{ font: '24px Open Sans', fill: '#000' });
+		this.healthText = this.game.add.bitmapText(health.x + 36, health.y + 4, 
+			'upheaval', this.player.status().toString(), 32);
 		this.healthText.fixedToCamera = true;
 		// Enable enter and backspace
 		this.keyEnter = this.keyInput.addKey(Phaser.KeyCode.ENTER);
 		this.keyBackspace = this.keyInput.addKey(Phaser.KeyCode.BACKSPACE);
-		// Resize world
-		floor.resizeWorld();
-		this.collision.resizeWorld();
+	}
+
+	createObjects(): Phaser.Group {
+		var objects = this.game.add.group();
+		objects.enableBody = true;
+		// Get object based on type
+		var home = this.findObjects(this.tilemap, 'home', 'event');
+		var npc = this.findObjects(this.tilemap, 'npc', 'event');
+		var sign = this.findObjects(this.tilemap, 'read', 'event');
+		// For each type, load sprites per object
+		home.forEach((item) => {
+			this.makeSpritesForObjects(item, objects);
+		}, this);
+		npc.forEach((item) => {
+			this.makeSpritesForObjects(item, objects);
+		}, this);
+		sign.forEach((item) => {
+			this.makeSpritesForObjects(item, objects);
+		}, this);
+		return objects;
+	}
+
+	findObjects(map: Phaser.Tilemap, 
+		type: string, layer: string): Array<any> {
+		// Find each object based on type
+		var items = new Array<any>();
+		map.objects[layer].forEach((object) => {
+			if (object.properties.type === type) {
+				// Since Phaser uses top-left orientation, while Tiled uses
+				// bottom-left orientation, y-position needs to be adjusted
+				object.y -= map.tileHeight / 2;
+				items.push(object);
+			}
+		});
+		return items;
+	}
+
+	makeSpritesForObjects(object: any, 
+		items: Phaser.Group) {
+		// Create sprite based on item properties
+		var sprite = items.create(object.x, 
+			object.y, object.properties.name);
+		// Copy all properties to sprite
+		Object.keys(object.properties).forEach((key) => {
+			sprite[key] = object.properties[key];
+		});
 	}
 
 	update() {
 		this.player.update();
-		this.game.physics.arcade.collide(this.player, this.collision, () => {
-			this.player.stop();
-		});
 		this.moveCursor();
 		if (this.keyEnter.isDown) {
 			// When "quit" cmd executed or
@@ -101,7 +143,8 @@ class PlayState extends Phaser.State {
 			}
 			this.text.text = '';
 			this.command = '';
-			this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X;
+			this.cursor.setCursor(this.game.camera.x + ORIGIN_CURSOR_PLAY_X, 
+				this.cursor.position().y);
 		}
 		if (this.keyBackspace.isDown) {
 			if (this.command.length > 0) {
@@ -117,9 +160,10 @@ class PlayState extends Phaser.State {
 
 	moveCursor() {
 		var offset = 2;
-		this.cursorsprite.x = this.game.camera.x + ORIGIN_CURSOR_PLAY_X + 
-			this.text.width - offset;
-		this.cursorsprite.y = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y - offset;
+		var newX = this.game.camera.x + ORIGIN_CURSOR_PLAY_X + 
+			this.text.width + offset;
+		var newY = this.game.camera.y + ORIGIN_CURSOR_PLAY_Y;
+		this.cursor.setCursor(newX,newY);
 	}
 
 	onPress(char) {
@@ -134,10 +178,9 @@ class PlayState extends Phaser.State {
 	}
 
 	drawChar(word: string,
-		text: Phaser.Text) {
+		text: Phaser.BitmapText) {
 		// Draw last character and display on-screen
 		var character = word.charAt(word.length - 1);
-		text.fill = '#fff';
 		text.text = text.text.concat(character);
 	}
 
